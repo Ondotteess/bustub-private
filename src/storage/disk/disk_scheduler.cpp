@@ -17,25 +17,40 @@
 namespace bustub {
 
 DiskScheduler::DiskScheduler(DiskManager *disk_manager) : disk_manager_(disk_manager) {
-  // TODO(P1): remove this line after you have implemented the disk scheduler API
-  throw NotImplementedException(
-      "DiskScheduler is not implemented yet. If you have finished implementing the disk scheduler, please remove the "
-      "throw exception line in `disk_scheduler.cpp`.");
-
-  // Spawn the background thread
   background_thread_.emplace([&] { StartWorkerThread(); });
 }
 
 DiskScheduler::~DiskScheduler() {
-  // Put a `std::nullopt` in the queue to signal to exit the loop
   request_queue_.Put(std::nullopt);
   if (background_thread_.has_value()) {
     background_thread_->join();
   }
 }
 
-void DiskScheduler::Schedule(DiskRequest r) {}
+void DiskScheduler::Schedule(DiskRequest r) {
+  request_queue_.Put(std::move(r));
+}
 
-void DiskScheduler::StartWorkerThread() {}
+
+void DiskScheduler::StartWorkerThread() {
+  while (true) {
+    auto request_ = request_queue_.Get();
+    if (!request_.has_value()) {
+      break;
+    }
+
+    auto &[is_write_, data_, page_id_, callback_] = request_.value();
+    try {
+      if (is_write_) {
+        disk_manager_->WritePage(page_id_, data_);
+      } else {
+        disk_manager_->ReadPage(page_id_, data_);
+      }
+      callback_.set_value(true);
+    } catch (...) {
+      callback_.set_value(false);
+    }
+  }
+}
 
 }  // namespace bustub

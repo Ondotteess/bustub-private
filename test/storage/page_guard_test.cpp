@@ -25,7 +25,7 @@ namespace bustub {
 const size_t FRAMES = 10;
 const size_t K_DIST = 2;
 
-TEST(PageGuardTest, DISABLED_DropTest) {
+TEST(PageGuardTest, DropTest) {
   auto disk_manager = std::make_shared<DiskManagerUnlimitedMemory>();
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -70,6 +70,7 @@ TEST(PageGuardTest, DISABLED_DropTest) {
 
   // This will hang if the latches were not unlocked correctly in the destructors.
   {
+
     auto write_test1 = bpm->WritePage(pid1);
     auto write_test2 = bpm->WritePage(pid2);
   }
@@ -79,7 +80,7 @@ TEST(PageGuardTest, DISABLED_DropTest) {
     // Fill up the BPM.
     std::vector<WritePageGuard> guards;
     for (size_t i = 0; i < FRAMES; i++) {
-      auto new_pid = bpm->NewPage();
+      int new_pid = bpm->NewPage();
       guards.push_back(bpm->WritePage(new_pid));
       ASSERT_EQ(1, bpm->GetPinCount(new_pid));
       page_ids.push_back(new_pid);
@@ -94,13 +95,27 @@ TEST(PageGuardTest, DISABLED_DropTest) {
   auto mutable_page_id = bpm->NewPage();
   auto mutable_guard = bpm->WritePage(mutable_page_id);
   strcpy(mutable_guard.GetDataMut(), "data");  // NOLINT
+  std::cout << mutable_guard.GetData() << std::endl;  // отладчик clion пишет что там ничего нет
   mutable_guard.Drop();
-
+  mutable_guard.Drop();
+  mutable_guard.Drop();
   {
     // Fill up the BPM again.
     std::vector<WritePageGuard> guards;
     for (size_t i = 0; i < FRAMES; i++) {
       auto new_pid = bpm->NewPage();
+
+      for (size_t j = 0; j < FRAMES; j++) {
+        int c = 0;
+        if ( i == 8) {
+          while (bpm->frames_[j]->data_[c] != '\0') {
+            std::cout << bpm->frames_[j]->data_[c];
+            c++;
+          }
+          std::cout << std::endl;
+        }
+      }
+
       guards.push_back(bpm->WritePage(new_pid));
       ASSERT_EQ(1, bpm->GetPinCount(new_pid));
     }
@@ -108,13 +123,14 @@ TEST(PageGuardTest, DISABLED_DropTest) {
 
   // Fetching the flushed page should result in seeing the changed value.
   auto immutable_guard = bpm->ReadPage(mutable_page_id);
+  std::cout << immutable_guard.GetData() << std::endl;
   ASSERT_EQ(0, std::strcmp("data", immutable_guard.GetData()));
 
   // Shutdown the disk manager and remove the temporary file we created.
   disk_manager->ShutDown();
 }
 
-TEST(PageGuardTest, DISABLED_MoveTest) {
+TEST(PageGuardTest, MoveTest) {
   auto disk_manager = std::make_shared<DiskManagerUnlimitedMemory>();
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
