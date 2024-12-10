@@ -91,10 +91,10 @@ class Schema {
   auto GetUnlinedColumnCount() const -> uint32_t { return static_cast<uint32_t>(uninlined_columns_.size()); }
 
   /** @return the number of bytes used by one tuple */
-  inline auto GetInlinedStorageSize() const -> uint32_t { return length_; }
+  auto GetInlinedStorageSize() const -> uint32_t { return length_; }
 
   /** @return true if all columns are inlined, false otherwise */
-  inline auto IsInlined() const -> bool { return tuple_is_inlined_; }
+  auto IsInlined() const -> bool { return tuple_is_inlined_; }
 
   /** @return string representation of this schema */
   auto ToString(bool simplified = true) const -> std::string;
@@ -116,8 +116,7 @@ class Schema {
 }  // namespace bustub
 
 template <typename T>
-struct fmt::formatter<T, std::enable_if_t<std::is_base_of<bustub::Schema, T>::value, char>>
-    : fmt::formatter<std::string> {
+struct fmt::formatter<T, std::enable_if_t<std::is_base_of_v<bustub::Schema, T>, char>> : fmt::formatter<std::string> {
   template <typename FormatCtx>
   auto format(const bustub::Schema &x, FormatCtx &ctx) const {
     return fmt::formatter<std::string>::format(x.ToString(), ctx);
@@ -125,7 +124,7 @@ struct fmt::formatter<T, std::enable_if_t<std::is_base_of<bustub::Schema, T>::va
 };
 
 template <typename T>
-struct fmt::formatter<std::shared_ptr<T>, std::enable_if_t<std::is_base_of<bustub::Schema, T>::value, char>>
+struct fmt::formatter<std::shared_ptr<T>, std::enable_if_t<std::is_base_of_v<bustub::Schema, T>, char>>
     : fmt::formatter<std::string> {
   template <typename FormatCtx>
   auto format(const std::shared_ptr<T> &x, FormatCtx &ctx) const {
@@ -137,7 +136,7 @@ struct fmt::formatter<std::shared_ptr<T>, std::enable_if_t<std::is_base_of<bustu
 };
 
 template <typename T>
-struct fmt::formatter<std::unique_ptr<T>, std::enable_if_t<std::is_base_of<bustub::Schema, T>::value, char>>
+struct fmt::formatter<std::unique_ptr<T>, std::enable_if_t<std::is_base_of_v<bustub::Schema, T>, char>>
     : fmt::formatter<std::string> {
   template <typename FormatCtx>
   auto format(const std::unique_ptr<T> &x, FormatCtx &ctx) const {

@@ -52,7 +52,7 @@ class BoundOrderBy {
 }  // namespace bustub
 
 template <typename T>
-struct fmt::formatter<T, std::enable_if_t<std::is_base_of<bustub::BoundOrderBy, T>::value, char>>
+struct fmt::formatter<T, std::enable_if_t<std::is_base_of_v<bustub::BoundOrderBy, T>, char>>
     : fmt::formatter<std::string> {
   template <typename FormatCtx>
   auto format(const bustub::BoundOrderBy &x, FormatCtx &ctx) const {
@@ -61,7 +61,7 @@ struct fmt::formatter<T, std::enable_if_t<std::is_base_of<bustub::BoundOrderBy, 
 };
 
 template <typename T>
-struct fmt::formatter<std::unique_ptr<T>, std::enable_if_t<std::is_base_of<bustub::BoundOrderBy, T>::value, char>>
+struct fmt::formatter<std::unique_ptr<T>, std::enable_if_t<std::is_base_of_v<bustub::BoundOrderBy, T>, char>>
     : fmt::formatter<std::string> {
   template <typename FormatCtx>
   auto format(const std::unique_ptr<bustub::BoundOrderBy> &x, FormatCtx &ctx) const {

@@ -191,8 +191,8 @@ struct ConsumeHexPrefixResult {
 
 using namespace std::literals;
 
-constexpr auto consume_hex_prefix(std::string_view s)
-    -> ConsumeHexPrefixResult {
+constexpr auto
+consume_hex_prefix(std::string_view s) -> ConsumeHexPrefixResult {
   if (starts_with("0x"sv, s) || starts_with("0X"sv, s)) {
     s.remove_prefix(2);
     return {true, s};
@@ -367,8 +367,8 @@ class ArgumentParser;
 
 class Argument {
   friend class ArgumentParser;
-  friend auto operator<<(std::ostream &stream, const ArgumentParser &parser)
-      -> std::ostream &;
+  friend auto operator<<(std::ostream &stream,
+                         const ArgumentParser &parser) -> std::ostream &;
 
   template <std::size_t N, std::size_t... I>
   explicit Argument(std::string_view prefix_chars,
@@ -418,7 +418,7 @@ public:
   }
 
   template <class F, class... Args>
-  auto action(F &&callable, Args &&... bound_args)
+  auto action(F &&callable, Args &&...bound_args)
       -> std::enable_if_t<std::is_invocable_v<F, Args..., std::string const>,
                           Argument &> {
     using action_type = std::conditional_t<
@@ -649,7 +649,7 @@ public:
                                   const Argument &argument) {
     std::stringstream name_stream;
     name_stream << "  "; // indent
-    if (argument.is_positional(argument.m_names.front(),
+    if (argparse::Argument::is_positional(argument.m_names.front(),
                                argument.m_prefix_chars)) {
       if (!argument.m_metavar.empty()) {
         name_stream << argument.m_metavar;
@@ -731,8 +731,8 @@ private:
     std::size_t get_max() const { return m_max; }
 
     // Print help message
-    friend auto operator<<(std::ostream &stream, const NArgsRange &range)
-        -> std::ostream & {
+    friend auto operator<<(std::ostream &stream,
+                           const NArgsRange &range) -> std::ostream & {
       if (range.m_min == range.m_max) {
         if (range.m_min != 0 && range.m_min != 1) {
           stream << "[nargs: " << range.m_min << "] ";
@@ -949,7 +949,7 @@ private:
 
     if (first == eof) {
       return true;
-    } else if (prefix_chars.find(static_cast<char>(first)) !=
+    } if (prefix_chars.find(static_cast<char>(first)) !=
                std::string_view::npos) {
       name.remove_prefix(1);
       if (name.empty()) {
@@ -965,8 +965,8 @@ private:
    * @throws std::logic_error in case of incompatible types
    */
   template <typename T>
-  auto get() const
-      -> std::conditional_t<details::IsContainer<T>, T, const T &> {
+  auto
+  get() const -> std::conditional_t<details::IsContainer<T>, T, const T &> {
     if (!m_values.empty()) {
       if constexpr (details::IsContainer<T>) {
         return any_cast_container<T>(m_values);
@@ -1122,7 +1122,7 @@ public:
   // Parameter packed add_parents method
   // Accepts a variadic number of ArgumentParser objects
   template <typename... Targs>
-  ArgumentParser &add_parents(const Targs &... f_args) {
+  ArgumentParser &add_parents(const Targs &...f_args) {
     for (const ArgumentParser &parent_parser : {std::ref(f_args)...}) {
       for (const auto &argument : parent_parser.m_positional_arguments) {
         auto it = m_positional_arguments.insert(
@@ -1274,8 +1274,8 @@ public:
   }
 
   // Print help message
-  friend auto operator<<(std::ostream &stream, const ArgumentParser &parser)
-      -> std::ostream & {
+  friend auto operator<<(std::ostream &stream,
+                         const ArgumentParser &parser) -> std::ostream & {
     stream.setf(std::ios_base::left);
 
     auto longest_arg_length = parser.get_length_of_longest_argument();
@@ -1343,7 +1343,7 @@ public:
     for (const auto &argument : this->m_optional_arguments) {
       if (argument.m_names[0] == "-v") {
         continue;
-      } else if (argument.m_names[0] == "-h") {
+      } if (argument.m_names[0] == "-h") {
         stream << " [-h]";
       } else {
         stream << " " << argument.get_inline_usage();

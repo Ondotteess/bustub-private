@@ -12,12 +12,12 @@
 
 #pragma once
 
+#include "common/channel.h"
+#include "storage/disk/disk_manager.h"
+
 #include <future>  // NOLINT
 #include <optional>
 #include <thread>  // NOLINT
-
-#include "common/channel.h"
-#include "storage/disk/disk_manager.h"
 
 namespace bustub {
 
@@ -100,7 +100,7 @@ class DiskScheduler {
    *
    * @param page_id The page ID of the page to deallocate from disk.
    */
-  void DeallocatePage(page_id_t page_id) { disk_manager_->DeletePage(page_id); }
+  void DeallocatePage(page_id_t page_id) {}
 
  private:
   /** Pointer to the disk manager. */

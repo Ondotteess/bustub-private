@@ -16,8 +16,9 @@ int main(int argc, char *argv[]) {
   try {
     auto files = program.get<std::vector<std::string>>("files");
     std::cout << files.size() << " files provided" << std::endl;
-    for (auto &file : files)
+    for (auto &file : files) {
       std::cout << file << std::endl;
+    }
   } catch (std::logic_error &e) {
     std::cout << "No files provided" << std::endl;
   }

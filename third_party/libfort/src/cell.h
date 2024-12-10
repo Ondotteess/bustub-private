@@ -1,47 +1,48 @@
 #ifndef CELL_H
 #define CELL_H
 
+#include <cstddef>
 #include "fort_utils.h"
 
 FT_INTERNAL
-f_cell_t *create_cell(void);
+auto create_cell() -> f_cell_t *;
 
 FT_INTERNAL
 void destroy_cell(f_cell_t *cell);
 
 FT_INTERNAL
-f_cell_t *copy_cell(f_cell_t *cell);
+auto copy_cell(f_cell_t *cell) -> f_cell_t *;
 
 FT_INTERNAL
-size_t cell_vis_width(const f_cell_t *cell, const f_context_t *context);
+auto cell_vis_width(const f_cell_t *cell, const f_context_t *context) -> size_t;
 
 FT_INTERNAL
-size_t cell_invis_codes_width(const f_cell_t *cell, const f_context_t *context);
+auto cell_invis_codes_width(const f_cell_t *cell, const f_context_t *context) -> size_t;
 
 FT_INTERNAL
-size_t hint_height_cell(const f_cell_t *cell, const f_context_t *context);
+auto hint_height_cell(const f_cell_t *cell, const f_context_t *context) -> size_t;
 
 FT_INTERNAL
 void set_cell_type(f_cell_t *cell, enum f_cell_type type);
 
 FT_INTERNAL
-enum f_cell_type get_cell_type(const f_cell_t *cell);
+auto get_cell_type(const f_cell_t *cell) -> enum f_cell_type;
 
 FT_INTERNAL
-int cell_printf(f_cell_t *cell, size_t row, f_conv_context_t *cntx, size_t cod_width);
+auto cell_printf(f_cell_t *cell, size_t row, f_conv_context_t *cntx, size_t cod_width) -> int;
 
 FT_INTERNAL
-f_status fill_cell_from_string(f_cell_t *cell, const char *str);
+auto fill_cell_from_string(f_cell_t *cell, const char *str) -> f_status;
 
 #ifdef FT_HAVE_WCHAR
 FT_INTERNAL
-f_status fill_cell_from_wstring(f_cell_t *cell, const wchar_t *str);
+auto fill_cell_from_wstring(f_cell_t *cell, const wchar_t *str) -> f_status;
 #endif
 
 FT_INTERNAL
-f_status fill_cell_from_buffer(f_cell_t *cell, const f_string_buffer_t *buf);
+auto fill_cell_from_buffer(f_cell_t *cell, const f_string_buffer_t *buf) -> f_status;
 
 FT_INTERNAL
-f_string_buffer_t *cell_get_string_buffer(f_cell_t *cell);
+auto cell_get_string_buffer(f_cell_t *cell) -> f_string_buffer_t *;
 
 #endif /* CELL_H */

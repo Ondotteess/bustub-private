@@ -96,71 +96,71 @@ class Transaction {
   DISALLOW_COPY(Transaction);
 
   /** @return the id of the thread running the transaction */
-  inline auto GetThreadId() const -> std::thread::id { return thread_id_; }
+  auto GetThreadId() const -> std::thread::id { return thread_id_; }
 
   /** @return the id of this transaction */
-  inline auto GetTransactionId() const -> txn_id_t { return txn_id_; }
+  auto GetTransactionId() const -> txn_id_t { return txn_id_; }
 
   /** @return the id of this transaction, stripping the highest bit. NEVER use/store this value unless for debugging. */
-  inline auto GetTransactionIdHumanReadable() const -> txn_id_t { return txn_id_ ^ TXN_START_ID; }
+  auto GetTransactionIdHumanReadable() const -> txn_id_t { return txn_id_ ^ TXN_START_ID; }
 
   /** @return the temporary timestamp of this transaction */
-  inline auto GetTransactionTempTs() const -> timestamp_t { return txn_id_; }
+  auto GetTransactionTempTs() const -> timestamp_t { return txn_id_; }
 
   /** @return the isolation level of this transaction */
-  inline auto GetIsolationLevel() const -> IsolationLevel { return isolation_level_; }
+  auto GetIsolationLevel() const -> IsolationLevel { return isolation_level_; }
 
   /** @return the transaction state */
-  inline auto GetTransactionState() const -> TransactionState { return state_; }
+  auto GetTransactionState() const -> TransactionState { return state_; }
 
   /** @return the read ts */
-  inline auto GetReadTs() const -> timestamp_t { return read_ts_; }
+  auto GetReadTs() const -> timestamp_t { return read_ts_; }
 
   /** @return the commit ts */
-  inline auto GetCommitTs() const -> timestamp_t { return commit_ts_; }
+  auto GetCommitTs() const -> timestamp_t { return commit_ts_; }
 
   /** Modify an existing undo log. */
-  inline auto ModifyUndoLog(int log_idx, UndoLog new_log) {
+  auto ModifyUndoLog(int log_idx, UndoLog new_log) {
     std::scoped_lock<std::mutex> lck(latch_);
     undo_logs_[log_idx] = std::move(new_log);
   }
 
   /** @return the index of the undo log in this transaction */
-  inline auto AppendUndoLog(UndoLog log) -> UndoLink {
+  auto AppendUndoLog(UndoLog log) -> UndoLink {
     std::scoped_lock<std::mutex> lck(latch_);
     undo_logs_.emplace_back(std::move(log));
     return {txn_id_, static_cast<int>(undo_logs_.size() - 1)};
   }
 
-  inline auto AppendWriteSet(table_oid_t t, RID rid) {
+  auto AppendWriteSet(table_oid_t t, RID rid) {
     std::scoped_lock<std::mutex> lck(latch_);
     write_set_[t].insert(rid);
   }
 
-  inline auto GetWriteSets() -> const std::unordered_map<table_oid_t, std::unordered_set<RID>> & { return write_set_; }
+  auto GetWriteSets() -> const std::unordered_map<table_oid_t, std::unordered_set<RID>> & { return write_set_; }
 
-  inline auto AppendScanPredicate(table_oid_t t, const AbstractExpressionRef &predicate) {
+  auto AppendScanPredicate(table_oid_t t, const AbstractExpressionRef &predicate) {
     std::scoped_lock<std::mutex> lck(latch_);
     scan_predicates_[t].emplace_back(predicate);
   }
 
-  inline auto GetScanPredicates() -> const std::unordered_map<table_oid_t, std::vector<AbstractExpressionRef>> & {
+  auto GetScanPredicates() -> const std::unordered_map<table_oid_t, std::vector<AbstractExpressionRef>> & {
     return scan_predicates_;
   }
 
-  inline auto GetUndoLog(size_t log_id) -> UndoLog {
+  auto GetUndoLog(size_t log_id) -> UndoLog {
     std::scoped_lock<std::mutex> lck(latch_);
     return undo_logs_[log_id];
   }
 
-  inline auto GetUndoLogNum() -> size_t {
+  auto GetUndoLogNum() -> size_t {
     std::scoped_lock<std::mutex> lck(latch_);
     return undo_logs_.size();
   }
 
   /** Use this function in leaderboard benchmarks for online garbage collection. For stop-the-world GC, simply remove
    * the txn from the txn_map. */
-  inline auto ClearUndoLog() -> size_t {
+  auto ClearUndoLog() -> size_t {
     std::scoped_lock<std::mutex> lck(latch_);
     return undo_logs_.size();
   }

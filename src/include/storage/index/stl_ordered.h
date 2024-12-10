@@ -36,9 +36,9 @@ class STLOrderedIndexIterator {
     return *this;
   }
 
-  inline auto operator==(const STLOrderedIndexIterator &itr) const -> bool { return itr.iter_ == iter_; }
+  auto operator==(const STLOrderedIndexIterator &itr) const -> bool { return itr.iter_ == iter_; }
 
-  inline auto operator!=(const STLOrderedIndexIterator &itr) const -> bool { return !(*this == itr); }
+  auto operator!=(const STLOrderedIndexIterator &itr) const -> bool { return !(*this == itr); }
 
  private:
   const std::map<KT, VT, StlComparatorWrapper<KT, Cmp>> *map_;

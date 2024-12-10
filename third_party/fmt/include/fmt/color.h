@@ -155,7 +155,7 @@ enum class color : uint32_t {
   white_smoke = 0xF5F5F5,              // rgb(245,245,245)
   yellow = 0xFFFF00,                   // rgb(255,255,0)
   yellow_green = 0x9ACD32              // rgb(154,205,50)
-};                                     // enum class color
+};  // enum class color
 
 enum class terminal_color : uint8_t {
   black = 30,
@@ -562,9 +562,10 @@ OutputIt vformat_to(
                    fmt::emphasis::bold | fg(fmt::color::red), "{}", 42);
   \endrst
 */
-template <typename OutputIt, typename S, typename... Args,
-          bool enable = detail::is_output_iterator<OutputIt, char_t<S>>::value&&
-              detail::is_string<S>::value>
+template <
+    typename OutputIt, typename S, typename... Args,
+    bool enable = detail::is_output_iterator<OutputIt, char_t<S>>::value &&
+                  detail::is_string<S>::value>
 inline auto format_to(OutputIt out, const text_style& ts, const S& format_str,
                       Args&&... args) ->
     typename std::enable_if<enable, OutputIt>::type {
@@ -575,8 +576,8 @@ inline auto format_to(OutputIt out, const text_style& ts, const S& format_str,
 template <typename T, typename Char>
 struct formatter<detail::styled_arg<T>, Char> : formatter<T, Char> {
   template <typename FormatContext>
-  auto format(const detail::styled_arg<T>& arg, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(const detail::styled_arg<T>& arg,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     const auto& ts = arg.style;
     const auto& value = arg.value;
     auto out = ctx.out();

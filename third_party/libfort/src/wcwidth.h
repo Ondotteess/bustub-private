@@ -4,10 +4,10 @@
 #include "fort_utils.h"
 
 #ifdef FT_HAVE_WCHAR
-#include <wchar.h>
+#include <cwchar>
 
 FT_INTERNAL
-int mk_wcswidth(const wchar_t *pwcs, size_t n);
+auto mk_wcswidth(const wchar_t *pwcs, size_t n) -> int;
 
 #endif /* FT_HAVE_WCHAR */
 

@@ -136,8 +136,8 @@ class Catalog {
    * @param create_table_heap whether to create a table heap for the new table
    * @return A shared pointer to the metadata for the table
    */
-  auto CreateTable(Transaction *txn, const std::string &table_name, const Schema &schema, bool create_table_heap = true)
-      -> std::shared_ptr<TableInfo> {
+  auto CreateTable(Transaction *txn, const std::string &table_name, const Schema &schema,
+                   bool create_table_heap = true) -> std::shared_ptr<TableInfo> {
     if (table_names_.count(table_name) != 0) {
       return NULL_TABLE_INFO;
     }
@@ -361,6 +361,7 @@ class Catalog {
 
   auto GetTableNames() -> std::vector<std::string> {
     std::vector<std::string> result;
+    result.reserve(table_names_.size());
     for (const auto &x : table_names_) {
       result.push_back(x.first);
     }

@@ -1,5 +1,5 @@
+#include "doctest.hpp"
 #include <argparse/argparse.hpp>
-#include <doctest.hpp>
 
 using doctest::test_suite;
 
@@ -71,15 +71,15 @@ TEST_CASE("Parse a float argument with value" * test_suite("parse_args")) {
   argparse::ArgumentParser program("test");
   program.add_argument("--ratio").scan<'g', float>();
   program.parse_args({"test", "--ratio", "5.6645"});
-  REQUIRE(program.get<float>("--ratio") == 5.6645f);
+  REQUIRE(program.get<float>("--ratio") == 5.6645F);
 }
 
 TEST_CASE("Parse a float argument with default value" *
           test_suite("parse_args")) {
   argparse::ArgumentParser program("test");
-  program.add_argument("--ratio").default_value(3.14f).scan<'g', float>();
+  program.add_argument("--ratio").default_value(3.14F).scan<'g', float>();
   program.parse_args({"test", "--ratio"});
-  REQUIRE(program.get<float>("--ratio") == 3.14f);
+  REQUIRE(program.get<float>("--ratio") == 3.14F);
 }
 
 TEST_CASE("Parse a double argument with value" * test_suite("parse_args")) {
@@ -116,11 +116,11 @@ TEST_CASE("Parse a vector of float arguments" * test_suite("parse_args")) {
   program.parse_args({"test", "--vector", "1.1", "2.2", "3.3", "4.4", "5.5"});
   auto vector = program.get<std::vector<float>>("--vector");
   REQUIRE(vector.size() == 5);
-  REQUIRE(vector[0] == 1.1f);
-  REQUIRE(vector[1] == 2.2f);
-  REQUIRE(vector[2] == 3.3f);
-  REQUIRE(vector[3] == 4.4f);
-  REQUIRE(vector[4] == 5.5f);
+  REQUIRE(vector[0] == 1.1F);
+  REQUIRE(vector[1] == 2.2F);
+  REQUIRE(vector[2] == 3.3F);
+  REQUIRE(vector[3] == 4.4F);
+  REQUIRE(vector[4] == 5.5F);
 }
 
 TEST_CASE("Parse a vector of float without default value" *
@@ -148,8 +148,8 @@ TEST_CASE("Parse a vector of float without default value" *
       auto &&vec = opt.value();
       REQUIRE(vec.size() == 3);
       REQUIRE(vec[0] == .3f);
-      REQUIRE(vec[1] == 1.3f);
-      REQUIRE(vec[2] == 6.f);
+      REQUIRE(vec[1] == 1.3F);
+      REQUIRE(vec[2] == 6.F);
     }
   }
 }

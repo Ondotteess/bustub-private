@@ -24,10 +24,10 @@ static std::filesystem::path db_fname("test.bustub");
 
 // The number of frames we give to the buffer pool.
 const size_t FRAMES = 10;
-// Note that this test assumes you are using the an LRU-K replacement policy.
+// Note that this test assumes you are using the LRU-K replacement policy.
 const size_t K_DIST = 5;
 
-TEST(BufferPoolManagerTest, DISABLED_VeryBasicTest) {
+TEST(BufferPoolManagerTest, VeryBasicTest) {
   // A very basic test.
 
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
@@ -62,7 +62,7 @@ TEST(BufferPoolManagerTest, DISABLED_VeryBasicTest) {
   ASSERT_TRUE(bpm->DeletePage(pid));
 }
 
-TEST(BufferPoolManagerTest, DISABLED_PagePinEasyTest) {
+TEST(BufferPoolManagerTest, PagePinEasyTest) {
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
   auto bpm = std::make_shared<BufferPoolManager>(2, disk_manager.get(), 5);
 
@@ -157,7 +157,7 @@ TEST(BufferPoolManagerTest, DISABLED_PagePinEasyTest) {
   remove(disk_manager->GetLogFileName());
 }
 
-TEST(BufferPoolManagerTest, DISABLED_PagePinMediumTest) {
+TEST(BufferPoolManagerTest, PagePinMediumTest) {
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -235,7 +235,7 @@ TEST(BufferPoolManagerTest, DISABLED_PagePinMediumTest) {
   remove(db_fname);
 }
 
-TEST(BufferPoolManagerTest, DISABLED_PageAccessTest) {
+TEST(BufferPoolManagerTest, PageAccessTest) {
   const size_t rounds = 50;
 
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
@@ -273,7 +273,7 @@ TEST(BufferPoolManagerTest, DISABLED_PageAccessTest) {
   thread.join();
 }
 
-TEST(BufferPoolManagerTest, DISABLED_ContentionTest) {
+TEST(BufferPoolManagerTest, ContentionTest) {
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -315,7 +315,7 @@ TEST(BufferPoolManagerTest, DISABLED_ContentionTest) {
   thread1.join();
 }
 
-TEST(BufferPoolManagerTest, DISABLED_DeadlockTest) {
+TEST(BufferPoolManagerTest, DeadlockTest) {
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -355,7 +355,7 @@ TEST(BufferPoolManagerTest, DISABLED_DeadlockTest) {
   child.join();
 }
 
-TEST(BufferPoolManagerTest, DISABLED_EvictableTest) {
+TEST(BufferPoolManagerTest, EvictableTest) {
   // Test if the evictable status of a frame is always correct.
   size_t rounds = 1000;
   size_t num_readers = 8;
@@ -423,6 +423,57 @@ TEST(BufferPoolManagerTest, DISABLED_EvictableTest) {
     for (size_t i = 0; i < num_readers; i++) {
       readers[i].join();
     }
+  }
+}
+
+TEST(BufferPoolManagerTest, IsDirtyCustom) {
+  auto disk_manager = std::make_shared<DiskManager>("test_db_file");
+  auto bpm = std::make_shared<BufferPoolManager>(10, disk_manager.get(), 2);
+
+  page_id_t pid0 = bpm->NewPage();
+  ASSERT_NE(pid0, INVALID_PAGE_ID);
+
+  auto page0 = bpm->WritePage(pid0);
+  ASSERT_FALSE(page0.IsDirty());
+  page0.Drop();
+
+  auto page0_write = bpm->WritePage(pid0);
+  strcpy(page0_write.GetDataMut(), "Test Data");
+  ASSERT_TRUE(page0_write.IsDirty());
+  page0_write.Drop();
+
+  for (int i = 0; i < 5; i++) {
+    auto temp_page = bpm->WritePage(pid0);
+    ASSERT_TRUE(temp_page.IsDirty());
+    temp_page.Drop();
+  }
+
+  bpm->FlushPage(pid0);
+
+  auto page0_after_flush = bpm->WritePage(pid0);
+  ASSERT_FALSE(page0_after_flush.IsDirty());
+  page0_after_flush.Drop();
+
+  auto page0_modify = bpm->WritePage(pid0);
+  strcpy(page0_modify.GetDataMut(), "Modified Data");
+  ASSERT_TRUE(page0_modify.IsDirty());
+  page0_modify.Drop();
+
+  for (int i = 1; i <= 5; i++) {
+    page_id_t pid = bpm->NewPage();
+    ASSERT_NE(pid, INVALID_PAGE_ID);
+
+    auto page = bpm->WritePage(pid);
+    strcpy(page.GetDataMut(), std::to_string(i).c_str());
+    ASSERT_TRUE(page.IsDirty());
+    page.Drop();
+  }
+
+  bpm->FlushAllPages();
+  for (int i = 1; i <= 5; i++) {
+    auto temp_page = bpm->WritePage(pid0 + i);
+    ASSERT_FALSE(temp_page.IsDirty());
+    temp_page.Drop();
   }
 }
 

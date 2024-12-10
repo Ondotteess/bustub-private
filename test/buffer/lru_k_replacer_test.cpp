@@ -16,7 +16,7 @@
 
 namespace bustub {
 
-TEST(LRUKReplacerTest, DISABLED_SampleTest) {
+TEST(LRUKReplacerTest, SampleTest) {
   // Note that comparison with `std::nullopt` always results in `false`, and if the optional type actually does contain
   // a value, the comparison will compare the inner value.
   // See: https://devblogs.microsoft.com/oldnewthing/20211004-00/?p=105754
@@ -117,6 +117,65 @@ TEST(LRUKReplacerTest, DISABLED_SampleTest) {
   // Make sure that setting a non-existent frame as evictable or non-evictable doesn't do something strange.
   lru_replacer.SetEvictable(6, false);
   lru_replacer.SetEvictable(6, true);
+}
+
+TEST(LRUKReplacerTest, ConcurrencyTest) {
+  const size_t num_frames = 10;
+  const size_t k = 2;
+  const size_t num_threads = 5;
+  const size_t num_accesses = 1000;
+
+  bustub::LRUKReplacer replacer(num_frames, k);
+
+  std::vector<int> frame_ids(num_frames);
+  std::iota(frame_ids.begin(), frame_ids.end(), 0);
+
+  auto access_frames = [&](int thread_id) {
+    for (size_t i = 0; i < num_accesses; ++i) {
+      int frame_id = frame_ids[rand() % num_frames];
+      replacer.RecordAccess(frame_id, bustub::AccessType::Scan);
+
+      if (rand() % 2 == 0) {
+        replacer.SetEvictable(frame_id, true);
+      } else {
+        replacer.SetEvictable(frame_id, false);
+      }
+
+      if (rand() % 5 == 0) {
+        try {
+          replacer.Remove(frame_id);
+        } catch (const std::exception &e) {
+        }
+      }
+    }
+  };
+
+  std::vector<std::thread> threads;
+  for (size_t i = 0; i < num_threads; ++i) {
+    threads.emplace_back(access_frames, i);
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
+
+  size_t total_evictable = 0;
+  for (int frame_id : frame_ids) {
+    try {
+      replacer.SetEvictable(frame_id, true);
+      total_evictable++;
+    } catch (const std::exception &e) {
+    }
+  }
+  ASSERT_EQ(total_evictable, replacer.Size());
+
+  for (int frame_id : frame_ids) {
+    try {
+      replacer.Remove(frame_id);
+    } catch (const std::exception &e) {
+    }
+  }
+  ASSERT_EQ(replacer.Size(), 0);
 }
 
 }  // namespace bustub

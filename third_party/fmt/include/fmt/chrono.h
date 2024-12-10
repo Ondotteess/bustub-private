@@ -359,8 +359,8 @@ void write_codecvt(codecvt_result<CodeUnit>& out, string_view in_buf,
 }
 
 template <typename OutputIt>
-auto write_encoded_tm_str(OutputIt out, string_view in, const std::locale& loc)
-    -> OutputIt {
+auto write_encoded_tm_str(OutputIt out, string_view in,
+                          const std::locale& loc) -> OutputIt {
   if (detail::is_utf8() && loc != get_classic_locale()) {
     // char16_t and char32_t codecvts are broken in MSVC (linkage errors) and
     // gcc-4.
@@ -388,8 +388,8 @@ auto write_encoded_tm_str(OutputIt out, string_view in, const std::locale& loc)
 
 template <typename Char, typename OutputIt,
           FMT_ENABLE_IF(!std::is_same<Char, char>::value)>
-auto write_tm_str(OutputIt out, string_view sv, const std::locale& loc)
-    -> OutputIt {
+auto write_tm_str(OutputIt out, string_view sv,
+                  const std::locale& loc) -> OutputIt {
   codecvt_result<Char> unit;
   write_codecvt(unit, sv, loc);
   return copy_str<Char>(unit.buf, unit.end, out);
@@ -397,8 +397,8 @@ auto write_tm_str(OutputIt out, string_view sv, const std::locale& loc)
 
 template <typename Char, typename OutputIt,
           FMT_ENABLE_IF(std::is_same<Char, char>::value)>
-auto write_tm_str(OutputIt out, string_view sv, const std::locale& loc)
-    -> OutputIt {
+auto write_tm_str(OutputIt out, string_view sv,
+                  const std::locale& loc) -> OutputIt {
   return write_encoded_tm_str(out, sv, loc);
 }
 
@@ -2038,8 +2038,8 @@ struct formatter<std::chrono::duration<Rep, Period>, Char> {
   }
 
   template <typename FormatContext>
-  auto format(std::chrono::duration<Rep, Period> d, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(std::chrono::duration<Rep, Period> d,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     auto specs = specs_;
     auto precision = specs.precision;
     specs.precision = -1;
@@ -2114,8 +2114,8 @@ struct formatter<std::chrono::local_time<Duration>, Char>
   }
 
   template <typename FormatContext>
-  auto format(std::chrono::local_time<Duration> val, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(std::chrono::local_time<Duration> val,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     using period = typename Duration::period;
     if (period::num != 1 || period::den != 1 ||
         std::is_floating_point<typename Duration::rep>::value) {
@@ -2196,8 +2196,8 @@ template <typename Char> struct formatter<std::tm, Char> {
   }
 
   template <typename FormatContext>
-  auto format(const std::tm& tm, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(const std::tm& tm,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     return do_format<FormatContext, std::chrono::seconds>(tm, ctx, nullptr);
   }
 };

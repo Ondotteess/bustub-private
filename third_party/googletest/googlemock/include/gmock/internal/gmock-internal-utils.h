@@ -428,10 +428,11 @@ auto ApplyImpl(F&& f, Tuple&& args, IndexSequence<Idx...>)
 
 // Apply the function to a tuple of arguments.
 template <typename F, typename Tuple>
-auto Apply(F&& f, Tuple&& args) -> decltype(ApplyImpl(
-    std::forward<F>(f), std::forward<Tuple>(args),
-    MakeIndexSequence<std::tuple_size<
-        typename std::remove_reference<Tuple>::type>::value>())) {
+auto Apply(F&& f, Tuple&& args)
+    -> decltype(ApplyImpl(
+        std::forward<F>(f), std::forward<Tuple>(args),
+        MakeIndexSequence<std::tuple_size<
+            typename std::remove_reference<Tuple>::type>::value>())) {
   return ApplyImpl(std::forward<F>(f), std::forward<Tuple>(args),
                    MakeIndexSequence<std::tuple_size<
                        typename std::remove_reference<Tuple>::type>::value>());

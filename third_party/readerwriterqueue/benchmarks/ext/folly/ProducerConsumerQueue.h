@@ -21,14 +21,14 @@
 #ifndef PRODUCER_CONSUMER_QUEUE_H_
 #define PRODUCER_CONSUMER_QUEUE_H_
 
-#include <new>
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
+#include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-//#include <boost/noncopyable.hpp>
+// #include <boost/noncopyable.hpp>
 
 namespace folly {
 
@@ -36,17 +36,17 @@ namespace folly {
  * ProducerConsumerQueue is a one producer and one consumer queue
  * without locks.
  */
-template<class T>
+template <class T>
 struct ProducerConsumerQueue {
   typedef T value_type;
 
   // size must be >= 1.
   explicit ProducerConsumerQueue(uint32_t size)
-    : size_(size + 1)    // +1 because one slot is always empty
-    , records_(static_cast<T*>(std::malloc(sizeof(T) * (size + 1))))
-    , readIndex_(0)
-    , writeIndex_(0)
-  {
+      : size_(size + 1)  // +1 because one slot is always empty
+        ,
+        records_(static_cast<T *>(std::malloc(sizeof(T) * (size + 1)))),
+        readIndex_(0),
+        writeIndex_(0) {
     assert(size >= 1);
     if (!records_) {
       throw std::bad_alloc();
@@ -71,8 +71,8 @@ struct ProducerConsumerQueue {
     std::free(records_);
   }
 
-  template<class ...Args>
-  bool enqueue(Args&&... recordArgs) {
+  template <class... Args>
+  bool enqueue(Args &&...recordArgs) {
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
     auto nextRecord = currentWrite + 1;
     if (nextRecord == size_) {
@@ -89,7 +89,7 @@ struct ProducerConsumerQueue {
   }
 
   // move (or copy) the value at the front of the queue to given variable
-  bool try_dequeue(T& record) {
+  bool try_dequeue(T &record) {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
     if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
       // queue is empty
@@ -108,7 +108,7 @@ struct ProducerConsumerQueue {
 
   // pointer to the value at the front of the queue (for use in-place) or
   // nullptr if empty.
-  T* frontPtr() {
+  T *frontPtr() {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
     if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
       // queue is empty
@@ -131,8 +131,7 @@ struct ProducerConsumerQueue {
   }
 
   bool isEmpty() const {
-   return readIndex_.load(std::memory_order_consume) ==
-         writeIndex_.load(std::memory_order_consume);
+    return readIndex_.load(std::memory_order_consume) == writeIndex_.load(std::memory_order_consume);
   }
 
   bool isFull() const {
@@ -153,22 +152,21 @@ struct ProducerConsumerQueue {
   //   be removing items concurrently).
   // * It is undefined to call this from any other thread.
   size_t sizeGuess() const {
-    int ret = writeIndex_.load(std::memory_order_consume) -
-              readIndex_.load(std::memory_order_consume);
+    int ret = writeIndex_.load(std::memory_order_consume) - readIndex_.load(std::memory_order_consume);
     if (ret < 0) {
       ret += size_;
     }
     return ret;
   }
 
-private:
+ private:
   const uint32_t size_;
-  T* const records_;
+  T *const records_;
 
   std::atomic<int> readIndex_;
   std::atomic<int> writeIndex_;
 };
 
-}
+}  // namespace folly
 
 #endif

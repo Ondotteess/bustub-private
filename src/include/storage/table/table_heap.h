@@ -91,7 +91,7 @@ class TableHeap {
   auto MakeEagerIterator() -> TableIterator;
 
   /** @return the id of the first page of this table */
-  inline auto GetFirstPageId() const -> page_id_t { return first_page_id_; }
+  auto GetFirstPageId() const -> page_id_t { return first_page_id_; }
 
   /**
    * Update a tuple in place. Should NOT be used in project 3. Implement your project 3 update executor as delete and

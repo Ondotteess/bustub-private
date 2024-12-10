@@ -1,6 +1,6 @@
+#include "doctest.hpp"
+#include "test_utility.hpp"
 #include <argparse/argparse.hpp>
-#include <doctest.hpp>
-#include <test_utility.hpp>
 
 using doctest::test_suite;
 
@@ -36,8 +36,8 @@ TEST_CASE("Parse compound toggle arguments with implicit values and nargs" *
   REQUIRE(program.get<bool>("-b") == true);
   auto c = program.get<std::vector<float>>("-c");
   REQUIRE(c.size() == 2);
-  REQUIRE(c[0] == 3.14f);
-  REQUIRE(c[1] == 2.718f);
+  REQUIRE(c[0] == 3.14F);
+  REQUIRE(c[1] == 2.718F);
   auto input_files = program.get<std::vector<std::string>>("--input_files");
   REQUIRE(input_files.size() == 3);
   REQUIRE(input_files[0] == "a.txt");
@@ -82,7 +82,7 @@ TEST_CASE("Parse out-of-order compound arguments" *
   auto c = program.get<std::vector<float>>("-c"); // {3.14f, 2.718f}
   REQUIRE(a == true);
   REQUIRE(b == true);
-  REQUIRE(program["-c"] == std::vector<float>{3.14f, 2.718f});
+  REQUIRE(program["-c"] == std::vector<float>{3.14F, 2.718F});
 }
 
 TEST_CASE("Parse out-of-order compound arguments. Second variation" *
@@ -95,7 +95,7 @@ TEST_CASE("Parse out-of-order compound arguments. Second variation" *
 
   program.add_argument("-c")
       .nargs(2)
-      .default_value(std::vector<float>{0.0f, 0.0f})
+      .default_value(std::vector<float>{0.0F, 0.0F})
       .scan<'g', float>();
 
   program.parse_args({"./main", "-cb"});
@@ -106,5 +106,5 @@ TEST_CASE("Parse out-of-order compound arguments. Second variation" *
 
   REQUIRE(a == false);
   REQUIRE(b == true);
-  REQUIRE(program["-c"] == std::vector<float>{0.0f, 0.0f});
+  REQUIRE(program["-c"] == std::vector<float>{0.0F, 0.0F});
 }

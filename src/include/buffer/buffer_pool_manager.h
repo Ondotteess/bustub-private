@@ -63,11 +63,14 @@ class FrameHeader {
 
  public:
   explicit FrameHeader(frame_id_t frame_id);
+  auto GetPageId() const -> page_id_t { return page_id_; }
+  void SetPageId(page_id_t page_id) { page_id_ = page_id; }
+  void Reset();
 
  private:
   auto GetData() const -> const char *;
   auto GetDataMut() -> char *;
-  void Reset();
+  page_id_t page_id_{INVALID_PAGE_ID};
 
   /** @brief The frame ID / index of the frame this header represents. */
   const frame_id_t frame_id_;
@@ -81,13 +84,13 @@ class FrameHeader {
   /** @brief The dirty flag. */
   bool is_dirty_;
 
+ public:
   /**
    * @brief A pointer to the data of the page that this frame holds.
    *
    * If the frame does not hold any page data, the frame contains all null bytes.
    */
   std::vector<char> data_;
-
   /**
    * TODO(P1): You may add any fields or helper functions under here that you think are necessary.
    *
@@ -114,6 +117,7 @@ class BufferPoolManager {
   ~BufferPoolManager();
 
   auto Size() const -> size_t;
+  auto FindPageToDelete() -> page_id_t;
   auto NewPage() -> page_id_t;
   auto DeletePage(page_id_t page_id) -> bool;
   auto CheckedWritePage(page_id_t page_id, AccessType access_type = AccessType::Unknown)
@@ -124,6 +128,67 @@ class BufferPoolManager {
   auto FlushPage(page_id_t page_id) -> bool;
   void FlushAllPages();
   auto GetPinCount(page_id_t page_id) -> std::optional<size_t>;
+
+  template <typename PageGuard>
+  auto ManagePage(page_id_t page_id, AccessType access_type) -> std::optional<PageGuard> {
+    std::shared_ptr<FrameHeader> frame;
+    frame_id_t frame_id;
+
+    {
+      std::scoped_lock lock(*bpm_latch_);
+
+      if (const auto it = page_table_.find(page_id); it != page_table_.end()) {
+        frame_id = it->second;
+        frame = frames_[frame_id];
+        replacer_->RecordAccess(frame_id, access_type);
+      } else {
+        if (!free_frames_.empty()) {
+          frame_id = free_frames_.front();
+          free_frames_.pop_front();
+          frame = frames_[frame_id];
+        } else {
+          const auto evctd_frame = replacer_->Evict();
+          if (!evctd_frame.has_value()) {
+            return std::nullopt;
+          }
+
+          frame_id = evctd_frame.value();
+          frame = frames_[frame_id];
+
+          if (frame->is_dirty_) {
+            std::promise<bool> write_promise;
+            const auto write_future = write_promise.get_future();
+            disk_scheduler_->Schedule({true, frame->GetDataMut(), frame->GetPageId(), std::move(write_promise)});
+            write_future.wait();
+            frame->is_dirty_ = false;
+          }
+
+          page_table_.erase(std::find_if(page_table_.begin(), page_table_.end(),
+                                         [&](const auto &pair) { return pair.second == frame_id; }));
+        }
+
+        frame->Reset();
+        frame->SetPageId(page_id);
+
+        std::promise<bool> read_promise;
+        const auto read_future = read_promise.get_future();
+        disk_scheduler_->Schedule({false, frame->GetDataMut(), page_id, std::move(read_promise)});
+        read_future.wait();
+
+        page_table_[page_id] = frame_id;
+      }
+
+      frame->pin_count_.fetch_add(1, std::memory_order_relaxed);
+      replacer_->RecordAccess(frame_id);
+      replacer_->SetEvictable(frame_id, false);
+    }
+
+    return PageGuard(page_id, frame, replacer_, bpm_latch_);
+  }
+
+  /** @brief The frame headers of the frames that this buffer pool manages. */
+  // frame и data пришлось временно унести в public чтобы отлаживать сиаутами
+  std::vector<std::shared_ptr<FrameHeader>> frames_;
 
  private:
   /** @brief The number of frames in the buffer pool. */
@@ -139,9 +204,6 @@ class BufferPoolManager {
    */
   std::shared_ptr<std::mutex> bpm_latch_;
 
-  /** @brief The frame headers of the frames that this buffer pool manages. */
-  std::vector<std::shared_ptr<FrameHeader>> frames_;
-
   /** @brief The page table that keeps track of the mapping between pages and buffer pool frames. */
   std::unordered_map<page_id_t, frame_id_t> page_table_;
 
@@ -153,6 +215,11 @@ class BufferPoolManager {
 
   /** @brief A pointer to the disk scheduler. */
   std::unique_ptr<DiskScheduler> disk_scheduler_;
+  struct PageState {
+    bool is_loaded_;
+    bool is_dirty_;
+  };
+  std::unordered_map<page_id_t, PageState> page_state_;
 
   /**
    * @brief A pointer to the log manager.
