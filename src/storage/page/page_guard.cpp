@@ -49,9 +49,7 @@ ReadPageGuard::ReadPageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> fra
  *
  * @param that The other page guard.
  */
-ReadPageGuard::ReadPageGuard(ReadPageGuard &&that) noexcept {
-  *this = std::move(that);
-}
+ReadPageGuard::ReadPageGuard(ReadPageGuard &&that) noexcept { *this = std::move(that); }
 
 /**
  * @brief The move assignment operator for `ReadPageGuard`.
@@ -124,15 +122,15 @@ void ReadPageGuard::Drop() {
     return;
   }
 
-  {
-    std::lock_guard lock(*bpm_latch_);
+  frame_->rwlatch_.unlock_shared();
 
+  {
+    std::scoped_lock scoped(*bpm_latch_);
     if (frame_->pin_count_.fetch_sub(1, std::memory_order_relaxed) == 1) {
       replacer_->SetEvictable(frame_->frame_id_, true);
     }
   }
 
-  frame_->rwlatch_.unlock_shared();
   frame_.reset();
   replacer_.reset();
   bpm_latch_.reset();
@@ -140,9 +138,7 @@ void ReadPageGuard::Drop() {
 }
 
 /** @brief The destructor for `ReadPageGuard`. This destructor simply calls `Drop()`. */
-ReadPageGuard::~ReadPageGuard() {
-  Drop();
-}
+ReadPageGuard::~ReadPageGuard() { Drop(); }
 
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
@@ -183,9 +179,7 @@ WritePageGuard::WritePageGuard(const page_id_t page_id, std::shared_ptr<FrameHea
  * @param that The other page guard.
  */
 
-WritePageGuard::WritePageGuard(WritePageGuard &&that) noexcept {
-  *this = std::move(that);
-}
+WritePageGuard::WritePageGuard(WritePageGuard &&that) noexcept { *this = std::move(that); }
 
 /**
  * @brief The move assignment operator for `WritePageGuard`.
@@ -238,6 +232,7 @@ auto WritePageGuard::GetData() const -> const char * {
  */
 auto WritePageGuard::GetDataMut() -> char * {
   BUSTUB_ENSURE(is_valid_, "tried to use an invalid write guard");
+  frame_->is_dirty_ = true;
   return frame_->GetDataMut();
 }
 
@@ -261,7 +256,6 @@ auto WritePageGuard::IsDirty() const -> bool {
  * TODO(P1): Add implementation.
  */
 
-
 void WritePageGuard::Drop() {
   if (!is_valid_) {
     return;
@@ -282,11 +276,8 @@ void WritePageGuard::Drop() {
   bpm_latch_.reset();
 }
 
-
 /** @brief The destructor for `WritePageGuard`. This destructor simply calls `Drop()`. */
 
-WritePageGuard::~WritePageGuard() {
-  Drop();
-}
+WritePageGuard::~WritePageGuard() { Drop(); }
 
 }  // namespace bustub

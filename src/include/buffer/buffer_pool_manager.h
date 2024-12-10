@@ -83,7 +83,8 @@ class FrameHeader {
 
   /** @brief The dirty flag. */
   bool is_dirty_;
-public:
+
+ public:
   /**
    * @brief A pointer to the data of the page that this frame holds.
    *
@@ -116,7 +117,8 @@ class BufferPoolManager {
   ~BufferPoolManager();
 
   auto Size() const -> size_t;
-  page_id_t FindPageToDelete();auto NewPage() -> page_id_t;
+  auto FindPageToDelete() -> page_id_t;
+  auto NewPage() -> page_id_t;
   auto DeletePage(page_id_t page_id) -> bool;
   auto CheckedWritePage(page_id_t page_id, AccessType access_type = AccessType::Unknown)
       -> std::optional<WritePageGuard>;
@@ -127,81 +129,62 @@ class BufferPoolManager {
   void FlushAllPages();
   auto GetPinCount(page_id_t page_id) -> std::optional<size_t>;
 
+  template <typename PageGuard>
+  auto ManagePage(page_id_t page_id, AccessType access_type) -> std::optional<PageGuard> {
+    std::shared_ptr<FrameHeader> frame;
+    frame_id_t frame_id;
 
-template <typename PageGuard>
-auto ManagePage(page_id_t page_id, AccessType access_type, bool is_write)
-    -> std::optional<PageGuard> {
-  std::shared_ptr<FrameHeader> frame;
-  frame_id_t frame_id;
+    {
+      std::scoped_lock lock(*bpm_latch_);
 
-  /**
-   *    1) проверить во frames
-   *        - если есть осталось только зарегестрировать доступ
-   *
-   *    2) во frames не нашлось
-   *        - найти кого выселить
-   *        - выгрузить его во внешнее хранилище
-   *        - сбросить фрейм и обновить таблицу
-   *        - загрузить фрейм и еще раз обновить таблицу
-   *        - зарегестрировать доступ
-   ***/
+      if (const auto it = page_table_.find(page_id); it != page_table_.end()) {
+        frame_id = it->second;
+        frame = frames_[frame_id];
+        replacer_->RecordAccess(frame_id, access_type);
+      } else {
+        if (!free_frames_.empty()) {
+          frame_id = free_frames_.front();
+          free_frames_.pop_front();
+          frame = frames_[frame_id];
+        } else {
+          const auto evctd_frame = replacer_->Evict();
+          if (!evctd_frame.has_value()) {
+            return std::nullopt;
+          }
 
+          frame_id = evctd_frame.value();
+          frame = frames_[frame_id];
 
-  {
-    std::scoped_lock lock(*bpm_latch_);
+          if (frame->is_dirty_) {
+            std::promise<bool> write_promise;
+            const auto write_future = write_promise.get_future();
+            disk_scheduler_->Schedule({true, frame->GetDataMut(), frame->GetPageId(), std::move(write_promise)});
+            write_future.wait();
+            frame->is_dirty_ = false;
+          }
 
-    if (const auto it = page_table_.find(page_id);it != page_table_.end()) {
-      frame_id = it->second;
-      frame = frames_[frame_id];
-    } else {
-      const auto evctd_frame = replacer_->Evict();
-      if (!evctd_frame.has_value()) {
-        return std::nullopt;
+          page_table_.erase(std::find_if(page_table_.begin(), page_table_.end(),
+                                         [&](const auto &pair) { return pair.second == frame_id; }));
+        }
 
+        frame->Reset();
+        frame->SetPageId(page_id);
+
+        std::promise<bool> read_promise;
+        const auto read_future = read_promise.get_future();
+        disk_scheduler_->Schedule({false, frame->GetDataMut(), page_id, std::move(read_promise)});
+        read_future.wait();
+
+        page_table_[page_id] = frame_id;
       }
 
-      frame_id = evctd_frame.value();
-      frame = frames_[frame_id];
-      if (frame->is_dirty_) {
-        std::promise<bool> write_promise;
-        const auto write_future = write_promise.get_future();
-
-        disk_scheduler_->Schedule({true, frame->GetDataMut(), frame->GetPageId(), std::move(write_promise)});
-        write_future.wait();
-        frame->is_dirty_ = false;
-      }
-
-
-
-      page_table_.erase(std::find_if(page_table_.begin(), page_table_.end(),
-                                     [&](const auto &pair) { return pair.second == frame_id; }));
-      frame->Reset();
-
-      std::promise<bool> read_promise;
-      const auto read_future = read_promise.get_future();
-      disk_scheduler_->Schedule({false, frame->GetDataMut(), page_id, std::move(read_promise)});
-      read_future.wait();
-
-      page_table_[page_id] = frame_id;
+      frame->pin_count_.fetch_add(1, std::memory_order_relaxed);
+      replacer_->RecordAccess(frame_id);
+      replacer_->SetEvictable(frame_id, false);
     }
 
-    frame->pin_count_.fetch_add(1, std::memory_order_relaxed);
-    replacer_->RecordAccess(frame_id);
-    replacer_->SetEvictable(frame_id, false);
+    return PageGuard(page_id, frame, replacer_, bpm_latch_);
   }
-
-  if (is_write) {
-    std::unique_lock rwlatch_lock(frame->rwlatch_);
-  } else {
-    std::shared_lock rwlatch_lock(frame->rwlatch_);
-  }
-
-
-  // std::unique_lock rwlatch_lock(frame->rwlatch_);
-
-
-  return PageGuard(page_id, frame, replacer_, bpm_latch_);
-}
 
   /** @brief The frame headers of the frames that this buffer pool manages. */
   // frame и data пришлось временно унести в public чтобы отлаживать сиаутами
@@ -221,7 +204,6 @@ auto ManagePage(page_id_t page_id, AccessType access_type, bool is_write)
    */
   std::shared_ptr<std::mutex> bpm_latch_;
 
-
   /** @brief The page table that keeps track of the mapping between pages and buffer pool frames. */
   std::unordered_map<page_id_t, frame_id_t> page_table_;
 
@@ -233,6 +215,11 @@ auto ManagePage(page_id_t page_id, AccessType access_type, bool is_write)
 
   /** @brief A pointer to the disk scheduler. */
   std::unique_ptr<DiskScheduler> disk_scheduler_;
+  struct PageState {
+    bool is_loaded_;
+    bool is_dirty_;
+  };
+  std::unordered_map<page_id_t, PageState> page_state_;
 
   /**
    * @brief A pointer to the log manager.

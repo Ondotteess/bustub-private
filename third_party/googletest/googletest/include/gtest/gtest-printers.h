@@ -218,8 +218,8 @@ struct StreamPrinter {
   // ADL (possibly involving implicit conversions).
   // (Use SFINAE via return type, because it seems GCC < 12 doesn't handle name
   // lookup properly when we do it in the template parameter list.)
-  static auto PrintValue(const T& value, ::std::ostream* os)
-      -> decltype((void)(*os << value)) {
+  static auto PrintValue(const T& value,
+                         ::std::ostream* os) -> decltype((void)(*os << value)) {
     // Call streaming operator found by ADL, possibly with implicit conversions
     // of the arguments.
     *os << value;

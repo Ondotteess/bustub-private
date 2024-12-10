@@ -16,7 +16,9 @@
 FMT_BEGIN_NAMESPACE
 FMT_BEGIN_EXPORT
 
-template <typename T> struct printf_formatter { printf_formatter() = delete; };
+template <typename T> struct printf_formatter {
+  printf_formatter() = delete;
+};
 
 template <typename Char> class basic_printf_context {
  private:
@@ -102,7 +104,9 @@ struct is_zero_int {
 
 template <typename T> struct make_unsigned_or_bool : std::make_unsigned<T> {};
 
-template <> struct make_unsigned_or_bool<bool> { using type = bool; };
+template <> struct make_unsigned_or_bool<bool> {
+  using type = bool;
+};
 
 template <typename T, typename Context> class arg_converter {
  private:
@@ -216,8 +220,8 @@ template <typename Char> class printf_width_handler {
 // Workaround for a bug with the XL compiler when initializing
 // printf_arg_formatter's base class.
 template <typename Char>
-auto make_arg_formatter(buffer_appender<Char> iter, format_specs<Char>& s)
-    -> arg_formatter<Char> {
+auto make_arg_formatter(buffer_appender<Char> iter,
+                        format_specs<Char>& s) -> arg_formatter<Char> {
   return {iter, s, locale_ref()};
 }
 
@@ -367,8 +371,8 @@ auto parse_header(const Char*& it, const Char* end, format_specs<Char>& specs,
   return arg_index;
 }
 
-inline auto parse_printf_presentation_type(char c, type t)
-    -> presentation_type {
+inline auto parse_printf_presentation_type(char c,
+                                           type t) -> presentation_type {
   using pt = presentation_type;
   constexpr auto integral_set = sint_set | uint_set | bool_set | char_set;
   switch (c) {

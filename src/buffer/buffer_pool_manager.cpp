@@ -21,27 +21,21 @@ namespace bustub {
  *
  * @param frame_id The frame ID / index of the frame we are creating a header for.
  */
-FrameHeader::FrameHeader(const frame_id_t frame_id) : frame_id_(frame_id), data_(BUSTUB_PAGE_SIZE, 0) {
-  Reset();
-}
+FrameHeader::FrameHeader(const frame_id_t frame_id) : frame_id_(frame_id), data_(BUSTUB_PAGE_SIZE, 0) { Reset(); }
 
 /**
  * @brief Get a raw const pointer to the frame's data.
  *
  * @return const char* A pointer to immutable data that the frame stores.
  */
-auto FrameHeader::GetData() const -> const char * {
-  return data_.data();
-}
+auto FrameHeader::GetData() const -> const char * { return data_.data(); }
 
 /**
  * @brief Get a raw mutable pointer to the frame's data.
  *
  * @return char* A pointer to mutable data that the frame stores.
  */
-auto FrameHeader::GetDataMut() -> char * {
-  return data_.data();
-}
+auto FrameHeader::GetDataMut() -> char * { return data_.data(); }
 
 /**
  * @brief Resets a `FrameHeader`'s member fields.
@@ -102,9 +96,7 @@ BufferPoolManager::~BufferPoolManager() = default;
 /**
  * @brief Returns the number of frames that this buffer pool manages.
  */
-auto BufferPoolManager::Size() const -> size_t {
-  return num_frames_;
-}
+auto BufferPoolManager::Size() const -> size_t { return num_frames_; }
 
 /**
  * @brief Allocates a new page on disk.
@@ -125,96 +117,27 @@ auto BufferPoolManager::Size() const -> size_t {
  * @return The page ID of the newly allocated page.
  */
 
-  // page_id_t BufferPoolManager::FindPageToDelete() {
-  //   if (const auto frm_id = replacer_->Evict(); frm_id.has_value()) {
-  //     frame_id_t frame_id = frm_id.value();
-  //
-  //     auto it = std::find_if(page_table_.begin(), page_table_.end(),
-  //                            [&frame_id](const auto& entry) { return entry.second == frame_id; });
-  //
-  //     if (it != page_table_.end()) {
-  //       return it->first;
-  //     }
-  //   }
-  //   return INVALID_PAGE_ID;
-  // }
+// page_id_t BufferPoolManager::FindPageToDelete() {
+//   if (const auto frm_id = replacer_->Evict(); frm_id.has_value()) {
+//     frame_id_t frame_id = frm_id.value();
+//
+//     auto it = std::find_if(page_table_.begin(), page_table_.end(),
+//                            [&frame_id](const auto& entry) { return entry.second == frame_id; });
+//
+//     if (it != page_table_.end()) {
+//       return it->first;
+//     }
+//   }
+//   return INVALID_PAGE_ID;
+// }
 
 auto BufferPoolManager::NewPage() -> page_id_t {
   std::scoped_lock latch(*bpm_latch_);
 
   const page_id_t new_pg_id = next_page_id_.fetch_add(1);
-
-
-  if (!free_frames_.empty()) {
-
-    // если место во фреймах есть туда и укладываем
-    const frame_id_t frame_id = free_frames_.front();
-    free_frames_.pop_front();
-    const auto &frame = frames_[frame_id];
-
-    if (frame->is_dirty_) {
-      std::promise<bool> write_promise;
-      auto write_future = write_promise.get_future();
-
-      disk_scheduler_->Schedule({true, frame->GetDataMut(), frame->GetPageId(), std::move(write_promise)});
-
-
-      if (write_future.wait_for(std::chrono::seconds(5)) != std::future_status::ready) {
-        throw std::runtime_error("too long disk writing");
-      }   // TODO: склеить
-      if (!write_future.get()) {
-        throw std::runtime_error("failed to schedule write");
-      }
-
-
-      frame->is_dirty_ = false;
-    }
-
-    frame->Reset();
-    frame->SetPageId(new_pg_id);
-    page_table_[new_pg_id] = frame_id;
-    return new_pg_id;
-  }
-
-  // места не нашлось ищем кого выгнать
-  const auto evct_frm = replacer_->Evict();
-  if (!evct_frm.has_value()) {
-    // здесь НЕ бросать исключение
-    disk_scheduler_->IncreaseDiskSpace(new_pg_id + 1);
-    return new_pg_id;;
-  }
-
-  frame_id_t evct_frm_id = evct_frm.value();
-  const auto &frame = frames_[evct_frm_id];
-
-  if (frame->is_dirty_) {
-    std::promise<bool> write_promise;
-    auto write_future = write_promise.get_future();
-    disk_scheduler_->Schedule(
-   {true, frame->GetDataMut(), frame->GetPageId(), std::move(write_promise)});
-    write_future.wait();
-
-  }
-
-  // TODO: собрать в метод
-  auto rm_page = std::find_if(
-      page_table_.begin(), page_table_.end(),
-      [&](const auto &pair) { return pair.second == evct_frm_id; });
-
-
-  if (rm_page != page_table_.end()) {
-    page_table_.erase(rm_page);
-  }
-
-
-  frame->Reset();
-  frame->SetPageId(new_pg_id);
-  page_table_[new_pg_id] = evct_frm_id;
-
+  disk_scheduler_->IncreaseDiskSpace(new_pg_id);
   return new_pg_id;
 }
-
-
 
 /**
  * @brief Removes a page from the database, both on disk and in memory.
@@ -246,8 +169,7 @@ auto BufferPoolManager::NewPage() -> page_id_t {
 auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
   std::scoped_lock latch(*bpm_latch_);
 
-
-  if (const auto it = page_table_.find(page_id);it != page_table_.end()) {
+  if (const auto it = page_table_.find(page_id); it != page_table_.end()) {
     const frame_id_t frame_id = it->second;
     const auto &frame = frames_[frame_id];
 
@@ -256,12 +178,12 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
     }
     if (frame->is_dirty_) {
       disk_scheduler_->Schedule({true, frame->GetDataMut(), page_id, {}});
-
     }
     frame->Reset();
-    replacer_->Remove(frame_id);page_table_.erase(it); free_frames_.push_back(frame_id);
+    replacer_->Remove(frame_id);
+    page_table_.erase(it);
+    free_frames_.push_back(frame_id);
   }
-
 
   disk_scheduler_->DeallocatePage(page_id);
   return true;
@@ -307,9 +229,8 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
  * returns `std::nullopt`, otherwise returns a `WritePageGuard` ensuring exclusive and mutable access to a page's data.
  */
 
-auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_type)
-    -> std::optional<WritePageGuard> {
-  return ManagePage<WritePageGuard>(page_id, access_type, true);
+auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_type) -> std::optional<WritePageGuard> {
+  return ManagePage<WritePageGuard>(page_id, access_type);
 }
 
 /**
@@ -336,9 +257,8 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
  * @return std::optional<ReadPageGuard> An optional latch guard where if there are no more free frames (out of memory)
  * returns `std::nullopt`, otherwise returns a `ReadPageGuard` ensuring shared and read-only access to a page's data.
  */
-auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_type)
-    -> std::optional<ReadPageGuard> {
-  return ManagePage<ReadPageGuard>(page_id, access_type, false);
+auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_type) -> std::optional<ReadPageGuard> {
+  return ManagePage<ReadPageGuard>(page_id, access_type);
 }
 
 /**
@@ -419,8 +339,7 @@ auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool {
 
   const frame_id_t frame_id = it->second;
 
-  if (const auto &frame = frames_[frame_id];frame->is_dirty_) {
-
+  if (const auto &frame = frames_[frame_id]; frame->is_dirty_) {
     disk_scheduler_->Schedule({true, frame->GetDataMut(), page_id, {}});
     frame->is_dirty_ = false;
   }
@@ -443,13 +362,11 @@ void BufferPoolManager::FlushAllPages() {
   std::scoped_lock latch(*bpm_latch_);
 
   for (auto &[page_id, frame_id] : page_table_) {
-
-    if (const auto &frame = frames_[frame_id];frame->is_dirty_) {
+    if (const auto &frame = frames_[frame_id]; frame->is_dirty_) {
       disk_scheduler_->Schedule({true, frame->GetDataMut(), page_id, {}});
       frame->is_dirty_ = false;
     }
   }
-
 }
 
 /**
@@ -487,6 +404,5 @@ auto BufferPoolManager::GetPinCount(page_id_t page_id) -> std::optional<size_t> 
 
   return frames_[it->second]->pin_count_.load();
 }
-
 
 }  // namespace bustub

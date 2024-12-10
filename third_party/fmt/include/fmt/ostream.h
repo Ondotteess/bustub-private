@@ -98,7 +98,9 @@ void format_value(buffer<Char>& buf, const T& value,
   output.exceptions(std::ios_base::failbit | std::ios_base::badbit);
 }
 
-template <typename T> struct streamed_view { const T& value; };
+template <typename T> struct streamed_view {
+  const T& value;
+};
 
 }  // namespace detail
 
@@ -108,8 +110,8 @@ struct basic_ostream_formatter : formatter<basic_string_view<Char>, Char> {
   void set_debug_format() = delete;
 
   template <typename T, typename OutputIt>
-  auto format(const T& value, basic_format_context<OutputIt, Char>& ctx) const
-      -> OutputIt {
+  auto format(const T& value,
+              basic_format_context<OutputIt, Char>& ctx) const -> OutputIt {
     auto buffer = basic_memory_buffer<Char>();
     detail::format_value(buffer, value, ctx.locale());
     return formatter<basic_string_view<Char>, Char>::format(

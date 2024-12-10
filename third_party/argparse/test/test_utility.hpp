@@ -4,11 +4,11 @@
 namespace testutility {
 // Get value at index from std::list
 template <typename T>
-T get_from_list(const std::list<T>& aList, size_t aIndex) {
-  if (aList.size() > aIndex) {
-    auto tIterator = aList.begin();
-    std::advance(tIterator, aIndex);
-    return *tIterator;
+T get_from_list(const std::list<T>& a_list, size_t a_index) {
+  if (a_list.size() > a_index) {
+    auto t_iterator = a_list.begin();
+    std::advance(t_iterator, a_index);
+    return *t_iterator;
   }
   return T();
 }

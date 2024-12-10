@@ -15,43 +15,37 @@
 
 #include <windows.h>
 
-namespace moodycamel
-{
+namespace moodycamel {
 
-void sleep(int milliseconds)
-{
-	::Sleep(milliseconds);
+void sleep(int milliseconds) { ::Sleep(milliseconds); }
+
+SystemTime getSystemTime() {
+  LARGE_INTEGER t;
+  CompilerMemBar();
+  if (!QueryPerformanceCounter(&t)) {
+    return static_cast<SystemTime>(-1);
+  }
+  CompilerMemBar();
+
+  return static_cast<SystemTime>(t.QuadPart);
 }
 
-SystemTime getSystemTime()
-{
-	LARGE_INTEGER t;
-	CompilerMemBar();
-	if (!QueryPerformanceCounter(&t)) {
-		return static_cast<SystemTime>(-1);
-	}
-	CompilerMemBar();
-	
-	return static_cast<SystemTime>(t.QuadPart);
-}
+double getTimeDelta(SystemTime start) {
+  LARGE_INTEGER t;
+  CompilerMemBar();
+  if (start == static_cast<SystemTime>(-1) || !QueryPerformanceCounter(&t)) {
+    return -1;
+  }
+  CompilerMemBar();
 
-double getTimeDelta(SystemTime start)
-{
-	LARGE_INTEGER t;
-	CompilerMemBar();
-	if (start == static_cast<SystemTime>(-1) || !QueryPerformanceCounter(&t)) {
-		return -1;
-	}
-	CompilerMemBar();
+  auto now = static_cast<SystemTime>(t.QuadPart);
 
-	auto now = static_cast<SystemTime>(t.QuadPart);
+  LARGE_INTEGER f;
+  if (!QueryPerformanceFrequency(&f)) {
+    return -1;
+  }
 
-	LARGE_INTEGER f;
-	if (!QueryPerformanceFrequency(&f)) {
-		return -1;
-	}
-
-	return static_cast<double>(static_cast<__int64>(now - start)) / f.QuadPart * 1000;
+  return static_cast<double>(static_cast<__int64>(now - start)) / f.QuadPart * 1000;
 }
 
 }  // end namespace moodycamel
@@ -60,37 +54,31 @@ double getTimeDelta(SystemTime start)
 
 #include <mach/mach.h>
 #include <mach/mach_time.h>
-#include <unistd.h>
 #include <time.h>
+#include <unistd.h>
 
-namespace moodycamel
-{
+namespace moodycamel {
 
-void sleep(int milliseconds)
-{
-	::usleep(milliseconds * 1000);
+void sleep(int milliseconds) { ::usleep(milliseconds * 1000); }
+
+SystemTime getSystemTime() {
+  CompilerMemBar();
+  std::uint64_t result = mach_absolute_time();
+  CompilerMemBar();
+
+  return result;
 }
 
-SystemTime getSystemTime()
-{
-	CompilerMemBar();
-	std::uint64_t result = mach_absolute_time();
-	CompilerMemBar();
-	
-	return result;
-}
+double getTimeDelta(SystemTime start) {
+  CompilerMemBar();
+  std::uint64_t end = mach_absolute_time();
+  CompilerMemBar();
 
-double getTimeDelta(SystemTime start)
-{
-	CompilerMemBar();
-	std::uint64_t end = mach_absolute_time();
-	CompilerMemBar();
+  mach_timebase_info_data_t tb = {0};
+  mach_timebase_info(&tb);
+  double toNano = static_cast<double>(tb.numer) / tb.denom;
 
-	mach_timebase_info_data_t tb = { 0 };
-	mach_timebase_info(&tb);
-	double toNano = static_cast<double>(tb.numer) / tb.denom;
-	
-	return static_cast<double>(end - start) * toNano * 0.000001;
+  return static_cast<double>(end - start) * toNano * 0.000001;
 }
 
 }  // end namespace moodycamel
@@ -99,37 +87,32 @@ double getTimeDelta(SystemTime start)
 
 #include <unistd.h>
 
-namespace moodycamel
-{
+namespace moodycamel {
 
-void sleep(int milliseconds)
-{
-	::usleep(milliseconds * 1000);
+void sleep(int milliseconds) { ::usleep(milliseconds * 1000); }
+
+SystemTime getSystemTime() {
+  timespec t;
+  CompilerMemBar();
+  if (clock_gettime(CLOCK_MONOTONIC_RAW, &t) != 0) {
+    t.tv_sec = (time_t)-1;
+    t.tv_nsec = -1;
+  }
+  CompilerMemBar();
+
+  return t;
 }
 
-SystemTime getSystemTime()
-{
-	timespec t;
-	CompilerMemBar();
-	if (clock_gettime(CLOCK_MONOTONIC_RAW, &t) != 0) {
-		t.tv_sec = (time_t)-1;
-		t.tv_nsec = -1;
-	}
-	CompilerMemBar();
-	
-	return t;
-}
+double getTimeDelta(SystemTime start) {
+  timespec t;
+  CompilerMemBar();
+  if ((start.tv_sec == (time_t)-1 && start.tv_nsec == -1) || clock_gettime(CLOCK_MONOTONIC_RAW, &t) != 0) {
+    return -1;
+  }
+  CompilerMemBar();
 
-double getTimeDelta(SystemTime start)
-{
-	timespec t;
-	CompilerMemBar();
-	if ((start.tv_sec == (time_t)-1 && start.tv_nsec == -1) || clock_gettime(CLOCK_MONOTONIC_RAW, &t) != 0) {
-		return -1;
-	}
-	CompilerMemBar();
-
-	return static_cast<double>(static_cast<long>(t.tv_sec) - static_cast<long>(start.tv_sec)) * 1000 + double(t.tv_nsec - start.tv_nsec) / 1000000;
+  return static_cast<double>(static_cast<long>(t.tv_sec) - static_cast<long>(start.tv_sec)) * 1000 +
+         double(t.tv_nsec - start.tv_nsec) / 1000000;
 }
 
 }  // end namespace moodycamel

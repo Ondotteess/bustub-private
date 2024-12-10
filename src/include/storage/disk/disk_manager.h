@@ -106,13 +106,13 @@ class DiskManager {
    * Sets the future which is used to check for non-blocking flushes.
    * @param f the non-blocking flush check
    */
-  inline void SetFlushLogFuture(std::future<void> *f) { flush_log_f_ = f; }
+  void SetFlushLogFuture(std::future<void> *f) { flush_log_f_ = f; }
 
   /** Checks if the non-blocking flush future was set. */
-  inline auto HasFlushLogFuture() -> bool { return flush_log_f_ != nullptr; }
+  auto HasFlushLogFuture() -> bool { return flush_log_f_ != nullptr; }
 
   /** @brief returns the log file name */
-  inline auto GetLogFileName() const -> std::filesystem::path { return log_name_; }
+  auto GetLogFileName() const -> std::filesystem::path { return log_name_; }
 
  protected:
   auto GetFileSize(const std::string &file_name) -> int;

@@ -74,8 +74,7 @@ void write_escaped_path(basic_memory_buffer<Char>& quoted,
 }
 
 #  ifdef _WIN32
-template <>
-inline auto get_path_string<char>(const std::filesystem::path& p) {
+template <> inline auto get_path_string<char>(const std::filesystem::path& p) {
   return to_utf8<wchar_t>(p.native(), to_utf8_error_policy::replace);
 }
 
@@ -179,8 +178,8 @@ struct formatter<std::optional<T>, Char,
   }
 
   template <typename FormatContext>
-  auto format(std::optional<T> const& opt, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(std::optional<T> const& opt,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     if (!opt) return detail::write<Char>(ctx.out(), none);
 
     auto out = ctx.out();
@@ -246,8 +245,8 @@ template <typename Char> struct formatter<std::monostate, Char> {
   }
 
   template <typename FormatContext>
-  auto format(const std::monostate&, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(const std::monostate&,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     return detail::write<Char>(ctx.out(), "monostate");
   }
 };
@@ -264,8 +263,8 @@ struct formatter<
   }
 
   template <typename FormatContext>
-  auto format(const Variant& value, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(const Variant& value,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     auto out = ctx.out();
 
     out = detail::write<Char>(out, "variant(");
@@ -295,8 +294,8 @@ template <typename Char> struct formatter<std::error_code, Char> {
   }
 
   template <typename FormatContext>
-  FMT_CONSTEXPR auto format(const std::error_code& ec, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  FMT_CONSTEXPR auto format(const std::error_code& ec,
+                            FormatContext& ctx) const -> decltype(ctx.out()) {
     auto out = ctx.out();
     out = detail::write_bytes(out, ec.category().name(), format_specs<Char>());
     out = detail::write<Char>(out, Char(':'));
@@ -429,8 +428,8 @@ struct formatter<BitRef, Char,
                  enable_if_t<detail::is_bit_reference_like<BitRef>::value>>
     : formatter<bool, Char> {
   template <typename FormatContext>
-  FMT_CONSTEXPR auto format(const BitRef& v, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  FMT_CONSTEXPR auto format(const BitRef& v,
+                            FormatContext& ctx) const -> decltype(ctx.out()) {
     return formatter<bool, Char>::format(v, ctx);
   }
 };

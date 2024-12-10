@@ -1,6 +1,6 @@
+#include "doctest.hpp"
 #include <argparse/argparse.hpp>
 #include <cmath>
-#include <doctest.hpp>
 
 using doctest::test_suite;
 

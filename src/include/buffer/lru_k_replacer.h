@@ -28,15 +28,12 @@ enum class AccessType { Unknown = 0, Lookup, Scan, Index };
 
 class LRUKNode {
  public:
-
   /** History of last seen K timestamps of this page.
    * Least recent timestamp stored in front. */
   // Remove maybe_unused if you start using them. Feel free to change the member variables as you want.
-  LRUKNode()
-      : fid_(0), k_(0), history_(), is_evictable_(false) {}
+  LRUKNode() : fid_(0), k_(0), is_evictable_(false) {}
 
-  LRUKNode(const frame_id_t fid, const size_t k)
-      : fid_(fid), k_(k), is_evictable_(false) {}
+  LRUKNode(const frame_id_t fid, const size_t k) : fid_(fid), k_(k), is_evictable_(false) {}
 
   void RecordAccess(const size_t timestamp) {
     history_.push_back(timestamp);
@@ -57,7 +54,6 @@ class LRUKNode {
   std::list<size_t> history_;
   bool is_evictable_;
 };
-
 
 /**
  * LRUKReplacer implements the LRU-k replacement policy.
@@ -80,8 +76,10 @@ class LRUKReplacer {
    * @param num_frames the maximum number of frames the LRUReplacer will be required to store
    */
 
-  
   explicit LRUKReplacer(size_t num_frames, size_t k);
+  auto CalculateKDistance(const LRUKNode &node) const -> size_t;
+  void UpdateEvictableStatus(LRUKNode &node, bool set_evictable);
+  auto ShouldEvicted(const LRUKNode &node, frame_id_t candidate_frame_id) -> bool;
 
   DISALLOW_COPY_AND_MOVE(LRUKReplacer);
 

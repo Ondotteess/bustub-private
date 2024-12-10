@@ -71,10 +71,9 @@ struct TerrierTotalMetrics {
     fmt::print(stderr, "db_size: {}\n", db_size);
     if (committed_txn_cnt != 0) {
       fmt::print(stderr, "db_size per committed txn: {}\n", db_size / static_cast<double>(committed_txn_cnt));
-    } else{
+    } else {
       fmt::print(stderr, "db_size per committed txn: 999999999\n");
     }
-
 
     fmt::print(stderr, ">>> END\n");
   }

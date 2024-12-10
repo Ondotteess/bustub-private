@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
 
   program.add_argument("-c")
       .nargs(2)
-      .default_value(std::vector<float>{0.0f, 0.0f})
+      .default_value(std::vector<float>{0.0F, 0.0F})
       .scan<'g', float>();
 
   try {

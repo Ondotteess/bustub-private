@@ -426,4 +426,55 @@ TEST(BufferPoolManagerTest, EvictableTest) {
   }
 }
 
+TEST(BufferPoolManagerTest, IsDirtyCustom) {
+  auto disk_manager = std::make_shared<DiskManager>("test_db_file");
+  auto bpm = std::make_shared<BufferPoolManager>(10, disk_manager.get(), 2);
+
+  page_id_t pid0 = bpm->NewPage();
+  ASSERT_NE(pid0, INVALID_PAGE_ID);
+
+  auto page0 = bpm->WritePage(pid0);
+  ASSERT_FALSE(page0.IsDirty());
+  page0.Drop();
+
+  auto page0_write = bpm->WritePage(pid0);
+  strcpy(page0_write.GetDataMut(), "Test Data");
+  ASSERT_TRUE(page0_write.IsDirty());
+  page0_write.Drop();
+
+  for (int i = 0; i < 5; i++) {
+    auto temp_page = bpm->WritePage(pid0);
+    ASSERT_TRUE(temp_page.IsDirty());
+    temp_page.Drop();
+  }
+
+  bpm->FlushPage(pid0);
+
+  auto page0_after_flush = bpm->WritePage(pid0);
+  ASSERT_FALSE(page0_after_flush.IsDirty());
+  page0_after_flush.Drop();
+
+  auto page0_modify = bpm->WritePage(pid0);
+  strcpy(page0_modify.GetDataMut(), "Modified Data");
+  ASSERT_TRUE(page0_modify.IsDirty());
+  page0_modify.Drop();
+
+  for (int i = 1; i <= 5; i++) {
+    page_id_t pid = bpm->NewPage();
+    ASSERT_NE(pid, INVALID_PAGE_ID);
+
+    auto page = bpm->WritePage(pid);
+    strcpy(page.GetDataMut(), std::to_string(i).c_str());
+    ASSERT_TRUE(page.IsDirty());
+    page.Drop();
+  }
+
+  bpm->FlushAllPages();
+  for (int i = 1; i <= 5; i++) {
+    auto temp_page = bpm->WritePage(pid0 + i);
+    ASSERT_FALSE(temp_page.IsDirty());
+    temp_page.Drop();
+  }
+}
+
 }  // namespace bustub

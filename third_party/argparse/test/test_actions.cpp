@@ -1,5 +1,5 @@
+#include "doctest.hpp"
 #include <argparse/argparse.hpp>
-#include <doctest.hpp>
 
 using doctest::test_suite;
 
@@ -55,9 +55,10 @@ public:
 
   static auto create(int w, int h, std::string_view format) -> Image {
     auto factor = [=] {
-      if (format == "720p")
+      if (format == "720p") {
         return std::min(1280. / w, 720. / h);
-      else if (format == "1080p")
+      }
+      if (format == "1080p")
         return std::min(1920. / w, 1080. / h);
       else
         return 1.;
@@ -139,7 +140,7 @@ TEST_CASE("Users can use actions on remaining arguments" *
           test_suite("actions")) {
   argparse::ArgumentParser program("concat");
 
-  std::string result = "";
+  std::string result;
   program.add_argument("all").remaining().action(
       [](std::string &sum, const std::string &value) { sum += value; },
       std::ref(result));

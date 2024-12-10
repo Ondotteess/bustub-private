@@ -14,99 +14,97 @@
 #include "common/exception.h"
 
 namespace bustub {
+
 LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_frames), k_(k) {}
 
+auto LRUKReplacer::ShouldEvicted(const LRUKNode &node, frame_id_t candidate_frame_id) -> bool {
+  size_t k_distance = node.GetKDistance(current_timestamp_);
+  const auto &candidate_node = node_store_.at(candidate_frame_id);
+
+  return k_distance > candidate_node.GetKDistance(current_timestamp_) ||
+         (k_distance == candidate_node.GetKDistance(current_timestamp_) &&
+          node.history_.front() < candidate_node.history_.front());
+}
+
 auto LRUKReplacer::Evict() -> std::optional<frame_id_t> {
-  std::lock_guard guard(latch_);
+  std::scoped_lock scoped(latch_);
 
-  frame_id_t frame = INVALID_FRAME_ID;
-  size_t max_dst = 0;
-  bool flag = false;
+  if (curr_size_ == 0) {
+    // std::cout << "eviction failed: no evictable frames" << std::endl;
+    return std::nullopt;
+  }
 
-  for (auto &[frame_id, node] : node_store_) {
+  frame_id_t candidate_frame = INVALID_FRAME_ID;
+
+  for (const auto &[frame_id, node] : node_store_) {
     if (!node.is_evictable_) {
       continue;
     }
 
-    size_t k_dst = node.GetKDistance(current_timestamp_);
-    if (k_dst > max_dst ||
-      (k_dst == max_dst && node.history_.front() < node_store_[frame]
-                                                                      .history_
-                                                                      .front())) {
-      max_dst = k_dst;
-      frame = frame_id;
-      flag = true;
+    if (candidate_frame == INVALID_FRAME_ID || ShouldEvicted(node, candidate_frame)) {
+      candidate_frame = frame_id;
     }
   }
 
-  if (flag) {
-    node_store_.erase(frame);
+  if (candidate_frame != INVALID_FRAME_ID) {
+    node_store_.erase(candidate_frame);
     curr_size_--;
-    return frame;
+    // std::cout << "evicted frame: " << candidate_frame << std::endl;
+    return candidate_frame;
   }
-
+  // std::cout << "no suitable frame found for eviction" << std::endl;
   return std::nullopt;
 }
 
-void LRUKReplacer::RecordAccess(frame_id_t frame_id, AccessType access_type) {
-  std::lock_guard guard(latch_);
+void LRUKReplacer::RecordAccess(frame_id_t frame_id, [[maybe_unused]] AccessType access_type) {
+  BUSTUB_ASSERT(static_cast<size_t>(frame_id) < replacer_size_, "Invalid frame_id");
+  std::scoped_lock scoped(latch_);
 
-  if (frame_id < 0 || static_cast<size_t>(frame_id) >= replacer_size_) {
-    throw Exception("Invalid frame_id");
+  if (node_store_.count(frame_id) == 0) {
+    node_store_[frame_id] = LRUKNode{frame_id, k_};
+    // std::cout << "added new frame to node store: " << frame_id << std::endl;
   }
 
-  current_timestamp_++;
+  auto &node = node_store_[frame_id];
+  node.history_.push_back(current_timestamp_++);
 
-  if (node_store_.find(frame_id) == node_store_.end()) {
-    //std::cout << "Node store size before emplace: " << node_store_.size() << std::endl;
-    node_store_.emplace(frame_id, LRUKNode(frame_id, k_));
-    //std::cout << "Node store size after emplace: " << node_store_.size() << std::endl;
-    //std::cout << node_store_.at(frame_id).fid_ << std::endl;
-    // отладчик clion пишет что node_store_ всегда пустой
+  if (node.history_.size() > node.k_) {
+    // std::cout << "trimmed history for frame: " << frame_id << std::endl;
+    node.history_.pop_front();
   }
-
-  node_store_[frame_id].RecordAccess(current_timestamp_);
 }
 
-auto LRUKReplacer::SetEvictable(const frame_id_t frame_id, const bool set_evictable) -> void {
-  std::lock_guard guard(latch_);
+void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
+  BUSTUB_ASSERT(static_cast<size_t>(frame_id) < replacer_size_, "Invalid frame_id");
+  std::scoped_lock lock(latch_);
 
-  // если фрейм не нашли просто выходим
-  // а если индекс не корректный бросаем исключение
-
-  if (frame_id < 0 || static_cast<size_t>(frame_id) >= replacer_size_) {
-    throw Exception("invalid frame_id");
+  if (auto &node = node_store_[frame_id]; node.is_evictable_ != set_evictable) {
+    curr_size_ += set_evictable ? 1 : -1;
+    node.is_evictable_ = set_evictable;
+    // std::cout << "frame " << frame_id << (set_evictable ? " marked as evictable" : " marked as non-evictable") <<
+    // std::endl;
   }
+}
 
-  const auto it = node_store_.find(frame_id);
+void LRUKReplacer::Remove(frame_id_t frame_id) {
+  std::scoped_lock lock(latch_);
+
+  BUSTUB_ASSERT(static_cast<size_t>(frame_id) < replacer_size_, "Invalid frame_id");
+
+  auto it = node_store_.find(frame_id);
   if (it == node_store_.end()) {
     return;
   }
 
-  if (auto &node = it->second ;node.is_evictable_ != set_evictable) {
-    curr_size_ += set_evictable ? 1 : -1;
-    node.is_evictable_ = set_evictable;
+  if (!it->second.is_evictable_) {
+    throw bustub::Exception("trying to remove non-evictable frame");
   }
-}
 
-void LRUKReplacer::Remove(const frame_id_t frame_id) {
-  std::lock_guard guard(latch_);
-
-  // std::cout  << "size: " << node_store_.size() << std::endl;
-  for (auto & it : node_store_) {
-    std::cout << it.second.fid_ << " " << it.second.is_evictable_<< std::endl;
-  }
-  //if (node_store_.find(frame_id) == node_store_.end() || !node_store_[frame_id].is_evictable_) {
-  //  throw bustub::Exception("Cannot remove non-evictable frame");
-  //}
-
-  node_store_.erase(frame_id);
+  node_store_.erase(it);
   curr_size_--;
+  // std::cout << "removed frame: " << frame_id << std::endl;
 }
 
-auto LRUKReplacer::Size() -> size_t {
-  std::lock_guard guard(latch_);
-  return curr_size_;
-}
+auto LRUKReplacer::Size() -> size_t { return curr_size_; }
 
 }  // namespace bustub

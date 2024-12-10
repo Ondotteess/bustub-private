@@ -48,8 +48,8 @@ template <typename OutputIt> auto copy(wchar_t ch, OutputIt out) -> OutputIt {
 // Returns true if T has a std::string-like interface, like std::string_view.
 template <typename T> class is_std_string_like {
   template <typename U>
-  static auto check(U* p)
-      -> decltype((void)p->find('a'), p->length(), (void)p->data(), int());
+  static auto check(U* p) -> decltype((void)p->find('a'), p->length(),
+                                      (void)p->data(), int());
   template <typename> static void check(...);
 
  public:
@@ -369,8 +369,8 @@ struct formatter<Tuple, Char,
   }
 
   template <typename FormatContext>
-  auto format(const Tuple& value, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(const Tuple& value,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     ctx.advance_to(detail::copy_str<Char>(opening_bracket_, ctx.out()));
     detail::for_each2(
         formatters_, value,
@@ -543,8 +543,8 @@ struct range_default_formatter<
   }
 
   template <typename FormatContext>
-  auto format(range_type& range, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(range_type& range,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     return underlying_.format(range, ctx);
   }
 };
@@ -700,8 +700,8 @@ FMT_BEGIN_EXPORT
   \endrst
  */
 template <typename... T>
-FMT_CONSTEXPR auto join(const std::tuple<T...>& tuple, string_view sep)
-    -> tuple_join_view<char, T...> {
+FMT_CONSTEXPR auto join(const std::tuple<T...>& tuple,
+                        string_view sep) -> tuple_join_view<char, T...> {
   return {tuple, sep};
 }
 
@@ -724,8 +724,8 @@ FMT_CONSTEXPR auto join(const std::tuple<T...>& tuple,
   \endrst
  */
 template <typename T>
-auto join(std::initializer_list<T> list, string_view sep)
-    -> join_view<const T*, const T*> {
+auto join(std::initializer_list<T> list,
+          string_view sep) -> join_view<const T*, const T*> {
   return join(std::begin(list), std::end(list), sep);
 }
 

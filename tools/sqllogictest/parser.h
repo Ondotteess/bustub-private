@@ -60,7 +60,7 @@ class Record {
 class IncludeRecord : public Record {
  public:
   explicit IncludeRecord(Location loc, std::string filename)
-      : Record{RecordType::INCLUDE, std::move(loc)}, filename_(std::move(filename)){};
+      : Record{RecordType::INCLUDE, std::move(loc)}, filename_(std::move(filename)) {};
 
   auto ToString() const -> std::string override { return fmt::format("Include {{ filename={} }}", filename_); }
 
@@ -73,7 +73,7 @@ class StatementRecord : public Record {
       : Record{RecordType::STATEMENT, std::move(loc)},
         is_error_(is_error),
         sql_(std::move(sql)),
-        extra_options_(std::move(extra_options)){};
+        extra_options_(std::move(extra_options)) {};
 
   auto ToString() const -> std::string override {
     return fmt::format("Statement {{\nis_error={},\nsql={}\n}}", is_error_, sql_);
@@ -107,7 +107,7 @@ class QueryRecord : public Record {
 
 class SleepRecord : public Record {
  public:
-  explicit SleepRecord(Location loc, size_t seconds) : Record{RecordType::SLEEP, std::move(loc)}, seconds_(seconds){};
+  explicit SleepRecord(Location loc, size_t seconds) : Record{RecordType::SLEEP, std::move(loc)}, seconds_(seconds) {};
 
   auto ToString() const -> std::string override { return fmt::format("Sleep {{ seconds={} }}", seconds_); }
 
